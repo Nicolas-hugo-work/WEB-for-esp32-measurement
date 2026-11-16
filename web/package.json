@@ -13,7 +13,8 @@
     "check:secrets": "node scripts/revisar-secretos.mjs",
     "iconos": "node scripts/generar-iconos.mjs",
     "test:e2e": "playwright test",
-    "test:integracion": "node scripts/prueba-integracion.mjs"
+    "test:integracion": "node scripts/prueba-integracion.mjs",
+    "build:vercel": "npm run build && npm run check:secrets"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -46,5 +47,8 @@
     "workbox-core": "^7.4.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

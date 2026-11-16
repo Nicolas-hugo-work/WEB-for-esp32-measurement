@@ -46,6 +46,37 @@ npx cloudflared tunnel --url http://localhost:5173   # entrega una URL https://�
 - **Android (Chrome):** abre la URL, ve a Ajustes y toca «Activar avisos».
 - **iPhone (iOS 16.4 o posterior):** abre la URL en Safari, elige *Compartir → Agregar a inicio*, abre la app desde el ícono y activa los avisos en Ajustes. Sin instalarla, iOS no permite push.
 
+## Desplegar en la nube (Supabase + Vercel)
+
+Proyecto Supabase: `wnnevrbowgyepbkggwyr`. El firmware ya apunta a ese proyecto.
+
+### 1. Supabase
+
+Desde la raíz del repo:
+
+```bash
+npx supabase login
+npx supabase link --project-ref wnnevrbowgyepbkggwyr
+npx supabase db push                     # aplica las 2 migraciones en orden (⚠️ la v2 BORRA las tablas viejas)
+npx supabase functions deploy vincular-dispositivo --no-verify-jwt
+npx supabase functions deploy ingest --no-verify-jwt
+npx supabase secrets set --env-file supabase/functions/.env   # VAPID_PRIVATE_KEY y VAPID_SUBJECT (+ RESEND_API_KEY si la tienes)
+```
+
+En el panel de Supabase:
+- **Authentication → URL Configuration:** *Site URL* = `https://TU-APP.vercel.app`. En *Redirect URLs* agrega `https://TU-APP.vercel.app/**`.
+- **Authentication → Sign In / Providers → Email:** sin un SMTP propio, Supabase **solo envía correos a los miembros de tu organización**. Con registro abierto, desactiva *Confirm email* hasta configurar un SMTP con dominio. Si no, los demás usuarios no podrán confirmar su cuenta ni recuperar la contraseña.
+- **Administrador del catálogo** (después de registrarte en la web), en el SQL Editor:
+  `insert into public.administradores (id_usuario) select id from auth.users where email = 'tu@correo';`
+
+### 2. Vercel
+
+1. *Add New → Project* → importa el repo de GitHub.
+2. **Root Directory: `web`**. El resto ya está en `vercel.json`: Vite, rutas de SPA, cabeceras de seguridad (CSP) y caché del service worker.
+3. *Deploy*. Las variables públicas salen de `web/.env.production`. Si las defines en *Settings → Environment Variables*, esas tienen prioridad.
+
+El build de Vercel corre `npm run build:vercel`: typecheck, build y revisión de que no haya secretos en el bundle.
+
 ## Scripts
 
 | Comando | Qué hace |
