@@ -15,5 +15,3 @@ web/dev-dist/
 web/.vite/
 .vercel
 
-.vercel
-.env*

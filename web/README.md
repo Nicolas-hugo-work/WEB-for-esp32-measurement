@@ -1,5 +1,7 @@
 # Mi Consumo: web del medidor ESP32
 
+**Producción:** https://mi-consumo-mu.vercel.app (Vercel, proyecto `mi-consumo`, se despliega solo con cada push a `main`).
+
 PWA mobile-first en español: vincular medidores, ver el consumo en vivo y el histórico, estimar el costo en Bs, configurar alertas y recibir notificaciones push.
 
 **Stack:** Vite + React 19 + TypeScript · TanStack Query (polling) · supabase-js (solo la *publishable key*; la seguridad la da RLS) · uPlot · Tailwind 4 · vite-plugin-pwa (service worker propio en `src/sw.ts`).
