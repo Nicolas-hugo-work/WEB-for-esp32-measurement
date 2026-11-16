@@ -1,0 +1,15 @@
+{
+  "name": "medidor-esp32",
+  "private": true,
+  "scripts": {
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > web/src/lib/database.types.ts",
+    "functions": "supabase functions serve --env-file supabase/functions/.env --no-verify-jwt",
+    "simular": "node scripts/simular-esp32.mjs"
+  },
+  "devDependencies": {
+    "supabase": "^2.20.0"
+  }
+}

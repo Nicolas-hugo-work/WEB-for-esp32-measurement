@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+supabase/.branches
+supabase/.temp
+supabase/functions/.env
+web/playwright-report/
+web/test-results/
+*.log
+.DS_Store
+scripts/.simulador*.json
+web/dev-dist/
+web/.vite/
