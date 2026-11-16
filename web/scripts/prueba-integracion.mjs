@@ -154,6 +154,18 @@ ok(!sub.error, "A guarda una suscripción push");
 const robar = await B.c.from("push_suscripciones").upsert({ id_usuario: B.id, endpoint: sub.data.endpoint, p256dh: "x", auth: "y" }, { onConflict: "endpoint" });
 ok(Boolean(robar.error), "Mismo endpoint con otra cuenta → error (la web se vuelve a suscribir)");
 
+// --- recalibrar el cero desde la web
+const recalB = await B.c.from("medidores_esp32").update({ recalibrar_solicitado: true }).eq("id_medidor", id_medidor).select();
+ok(recalB.data?.length === 0, "B no puede pedir recalibrar el medidor de A");
+const recal = await A.c.from("medidores_esp32").update({ recalibrar_solicitado: true }).eq("id_medidor", id_medidor).select("recalibrar_solicitado");
+ok(recal.data?.[0]?.recalibrar_solicitado === true, "A pide recalibrar el cero");
+const r1 = await post("ingest", { fw: "t", lecturas: lote(0.1, 15, 120) }, token);
+ok(r1.status === 200 && r1.json?.recalibrar === true, "ingest entrega {recalibrar: true} al ESP32");
+const r2 = await post("ingest", { fw: "t", lecturas: lote(0.1, 15, 140) }, token);
+ok(r2.status === 200 && r2.json?.recalibrar === false, "…solo una vez (el siguiente envío ya no lo pide)");
+const { data: flag } = await A.c.from("medidores_esp32").select("recalibrar_solicitado").eq("id_medidor", id_medidor).single();
+ok(flag?.recalibrar_solicitado === false, "La marca se limpia en la base");
+
 // --- desvincular y eliminar
 await A.c.from("medidores_esp32").update({ activo: false }).eq("id_medidor", id_medidor);
 const tras = await post("ingest", { fw: "t", lecturas: lote(0.5) }, token);

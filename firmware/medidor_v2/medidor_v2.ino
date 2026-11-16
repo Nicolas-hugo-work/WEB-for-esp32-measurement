@@ -10,7 +10,8 @@
 //      elige tu WiFi y escribe el codigo que te dio la web.
 //   2) El token secreto queda guardado en la memoria del ESP32 (NVS).
 //   3) Mide cada 1 s y envia un lote cada 15 s a la Edge Function "ingest".
-//   Para recalibrar el cero (con el aparato APAGADO) envia "c" por el Monitor Serie.
+//   El cero se calibra (con el aparato APAGADO) al vincular y cada vez que la web
+//   lo pide con "Recalibrar cero". Tambien se puede enviar "c" por el Monitor Serie.
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -27,7 +28,7 @@
 constexpr char SUPABASE_URL[] = "https://wnnevrbowgyepbkggwyr.supabase.co";
 constexpr char RUTA_VINCULAR[] = "/functions/v1/vincular-dispositivo";
 constexpr char RUTA_INGEST[] = "/functions/v1/ingest";
-constexpr char FIRMWARE_VERSION[] = "2.0.0";
+constexpr char FIRMWARE_VERSION[] = "2.1.0";
 
 constexpr uint32_t INTERVALO_LECTURA_MS = 1000;   // una lectura por segundo
 constexpr uint32_t INTERVALO_ENVIO_MS = 15000;    // un lote cada 15 s
@@ -49,6 +50,11 @@ constexpr uint8_t VENTANAS_CERO = 8;
 // Si el "ruido" medido al calibrar equivale a mas de esto, es que el aparato
 // estaba encendido: se rechaza la calibracion. Ajustalo con tu hardware.
 constexpr double RUIDO_MAX_EQUIV_A = 0.5;
+// El ruido del ADC sube cuando el WiFi transmite (cada envio HTTPS). Para que eso no
+// aparezca como "corriente fantasma": la varianza puede crecer hasta un 50 % sobre el
+// ruido calibrado sin contar como carga, y por debajo de CORRIENTE_MINIMA_A se muestra 0.
+constexpr double MARGEN_RUIDO = 0.5;
+constexpr double CORRIENTE_MINIMA_A = 0.05;
 static_assert(PASADAS > 0, "PASADAS debe ser mayor que cero");
 static_assert(ALPHA > 0 && ALPHA <= 1, "ALPHA debe estar entre 0 y 1");
 
@@ -58,7 +64,7 @@ bool oledOK = false;
 bool ceroOK = false;
 bool ceroFallido = false;
 bool filtroIniciado = false;
-bool solicitarCalibracion = false;
+volatile bool solicitarCalibracion = false;  // la escribe tambien la tarea de red (nucleo 0)
 double ruidoVarianza = 0;
 double umbralVarianza = 0;
 double corrienteFiltrada = 0;
@@ -336,7 +342,10 @@ bool vincularConCodigo(const char *codigoCrudo) {
   if (!soloHex64(tok)) return false;
   prefs.putString("token", tok);
   tokenDispositivo = tok;
-  Serial.println("VINCULAR: dispositivo vinculado");
+  // Vinculacion nueva = calibracion nueva: el cero guardado puede venir de otra instalacion.
+  prefs.remove("calok");
+  ceroOK = false;
+  Serial.println("VINCULAR: dispositivo vinculado. Se recalibrara el cero (aparato APAGADO).");
   return true;
 }
 
@@ -432,6 +441,12 @@ void tareaRed(void *param) {
     const int codigo = http.POST((uint8_t *)cuerpo, strlen(cuerpo));
 
     if (codigo == 200) {
+      // Leer siempre la respuesta (la conexion se reutiliza) y atender pedidos de la web.
+      const String resp = http.getString();
+      if (resp.indexOf("\"recalibrar\":true") >= 0) {
+        Serial.println("RED: la web pidio recalibrar el cero.");
+        solicitarCalibracion = true;
+      }
       portENTER_CRITICAL(&mux);
       uint8_t k = 0;  // quita las muestras ya enviadas (por seq, aunque se hayan descartado otras)
       while (k < nMuestras && muestras[k].seq <= ultimaSeqEnviada) k++;
@@ -527,17 +542,23 @@ void loop() {
   ultimaFallaCodigo[0] = '\0';  // sin falla: si reaparece, se vuelve a avisar
   const double corrienteBruta = convertirAmperios(sqrt(r.varianza));
   double varianzaNeta = r.varianza - ruidoVarianza;
-  const bool bajoRuido = varianzaNeta <= umbralVarianza;
+  // Se aplica aqui (no al calibrar) para que tambien valga con calibraciones ya guardadas.
+  const double umbral = max(umbralVarianza, MARGEN_RUIDO * ruidoVarianza);
+  bool bajoRuido = varianzaNeta <= umbral;
   if (varianzaNeta < 0 || bajoRuido) varianzaNeta = 0;
-  const double corrienteCorregida = convertirAmperios(sqrt(varianzaNeta));
+  double corrienteCorregida = convertirAmperios(sqrt(varianzaNeta));
+  if (corrienteCorregida < CORRIENTE_MINIMA_A) {
+    corrienteCorregida = 0;
+    bajoRuido = true;
+  }
   if (!filtroIniciado || bajoRuido) corrienteFiltrada = corrienteCorregida;
   else corrienteFiltrada += ALPHA * (corrienteCorregida - corrienteFiltrada);
   filtroIniciado = true;
   const char *estado = bajoRuido ? "BAJO UMBRAL RUIDO" : "MIDIENDO RMS";
   mostrar(corrienteFiltrada, r, estado);
-  Serial.printf("I_bruta=%.4f A | I_corregida=%.4f A | I_filtro=%.4f A | S~=%.2f VA | Bias=%.3f V | %s\n",
+  Serial.printf("I_bruta=%.4f A | I_corregida=%.4f A | I_filtro=%.4f A | S~=%.2f VA | Bias=%.3f V | ruido_cal=%.4f A | %s\n",
                 corrienteBruta, corrienteCorregida, corrienteFiltrada,
-                corrienteFiltrada * VOLTAJE_RED, r.medio, estado);
+                corrienteFiltrada * VOLTAJE_RED, r.medio, convertirAmperios(sqrt(ruidoVarianza)), estado);
   agregarMuestra((float)corrienteFiltrada);
   esperarHasta(t0 + INTERVALO_LECTURA_MS);
 }

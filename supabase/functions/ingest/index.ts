@@ -71,5 +71,6 @@ Deno.serve(async (req) => {
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(tarea);
     else await tarea;
   }
-  return json({ ok: true, insertadas: data.insertadas });
+  // recalibrar: la web pidió "Recalibrar cero"; el firmware 2.1+ lo lee de esta respuesta.
+  return json({ ok: true, insertadas: data.insertadas, recalibrar: data.recalibrar === true });
 });

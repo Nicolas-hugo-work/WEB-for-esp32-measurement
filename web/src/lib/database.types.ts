@@ -247,14 +247,14 @@ isOneToOne: false
                   ]
                 },"medidores_esp32": {
                   Row: {
-                    "activo": boolean,"creado_en": string,"firmware_version": string | null,"id_medidor": number,"id_usuario": string,"mac_address": unknown,"nombre": string | null,"token_hash": string,"ultima_conexion": string | null
+                    "activo": boolean,"creado_en": string,"firmware_version": string | null,"id_medidor": number,"id_usuario": string,"mac_address": unknown,"nombre": string | null,"recalibrar_solicitado": boolean,"token_hash": string,"ultima_conexion": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "activo"?: boolean,"creado_en"?: string,"firmware_version"?: string | null,"id_medidor"?: never,"id_usuario": string,"mac_address": unknown,"nombre"?: string | null,"token_hash": string,"ultima_conexion"?: string | null
+                    "activo"?: boolean,"creado_en"?: string,"firmware_version"?: string | null,"id_medidor"?: never,"id_usuario": string,"mac_address": unknown,"nombre"?: string | null,"recalibrar_solicitado"?: boolean,"token_hash": string,"ultima_conexion"?: string | null
                   }
                   Update: {
-                    "activo"?: boolean,"creado_en"?: string,"firmware_version"?: string | null,"id_medidor"?: never,"id_usuario"?: string,"mac_address"?: unknown,"nombre"?: string | null,"token_hash"?: string,"ultima_conexion"?: string | null
+                    "activo"?: boolean,"creado_en"?: string,"firmware_version"?: string | null,"id_medidor"?: never,"id_usuario"?: string,"mac_address"?: unknown,"nombre"?: string | null,"recalibrar_solicitado"?: boolean,"token_hash"?: string,"ultima_conexion"?: string | null
                   }
                   Relationships: [
                     

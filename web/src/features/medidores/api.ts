@@ -4,7 +4,7 @@ import { sinError, talVez } from "../../lib/errores";
 import type { TramoHora } from "../../lib/fechas";
 
 const SELECT_MEDIDOR =
-  "id_medidor, nombre, activo, ultima_conexion, firmware_version, creado_en, aparato:aparatos_instalados(id_aparato, id_catalogo, id_ubicacion, alias, alerta_activa, umbral_corriente_a, margen_alerta_pct, segundos_sostenido, ubicacion:ubicaciones(nombre), catalogo:catalogo_aparatos(tipo, marca, modelo, potencia_nominal_w, corriente_nominal_a))";
+  "id_medidor, nombre, activo, ultima_conexion, firmware_version, creado_en, recalibrar_solicitado, aparato:aparatos_instalados(id_aparato, id_catalogo, id_ubicacion, alias, alerta_activa, umbral_corriente_a, margen_alerta_pct, segundos_sostenido, ubicacion:ubicaciones(nombre), catalogo:catalogo_aparatos(tipo, marca, modelo, potencia_nominal_w, corriente_nominal_a))";
 
 async function cargarMedidores() {
   return sinError(await supabase.from("medidores_esp32").select(SELECT_MEDIDOR).order("creado_en"));
@@ -298,4 +298,24 @@ export function useEliminarMedidor() {
       qc.invalidateQueries({ queryKey: ["alertas"] });
     },
   });
+}
+
+/** Pide al ESP32 que vuelva a medir el cero (lo recibe en la respuesta de su próximo envío). */
+export function useRecalibrar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) =>
+      exigirFila(
+        await supabase.from("medidores_esp32").update({ recalibrar_solicitado: true }).eq("id_medidor", id).select("id_medidor"),
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["medidores"] }),
+  });
+}
+
+/** El firmware 2.1.0 o posterior atiende "Recalibrar cero" desde la web. */
+export function firmwareRecalibra(version: string | null): boolean {
+  const m = version?.match(/^(\d+)\.(\d+)/);
+  if (!m) return true; // desconocida: se intenta igual
+  const [mayor, menor] = [Number(m[1]), Number(m[2])];
+  return mayor > 2 || (mayor === 2 && menor >= 1);
 }

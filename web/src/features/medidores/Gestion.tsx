@@ -6,7 +6,15 @@ import { useAviso } from "../../components/avisos";
 import { mensajeError } from "../../lib/errores";
 import { describirAparato, useCatalogo } from "../catalogo/api";
 import { useUbicaciones } from "../ubicaciones/api";
-import { nombreMedidor, useDesvincular, useEliminarMedidor, useGuardarMedidor, type Medidor } from "./api";
+import {
+  firmwareRecalibra,
+  nombreMedidor,
+  useDesvincular,
+  useEliminarMedidor,
+  useGuardarMedidor,
+  useRecalibrar,
+  type Medidor,
+} from "./api";
 
 interface Props {
   m: Medidor;
@@ -159,6 +167,46 @@ export function EliminarMedidor({ m, abierto, onCerrar }: Props) {
           }
         >
           Eliminar para siempre
+        </Boton>
+      </div>
+    </Dialogo>
+  );
+}
+
+export function RecalibrarMedidor({ m, abierto, onCerrar }: Props) {
+  const recalibrar = useRecalibrar();
+  const avisar = useAviso();
+  const compatible = firmwareRecalibra(m.firmware_version);
+  return (
+    <Dialogo abierto={abierto} onCerrar={onCerrar} titulo="Recalibrar el cero">
+      <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+        <p>Úsalo si el medidor marca corriente con el aparato apagado.</p>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li><strong>Apaga el aparato</strong> (o saca el sensor del cable) antes de continuar.</li>
+          <li>Toca «Recalibrar». El medidor recibe el pedido en su próximo envío (hasta 15 s).</li>
+          <li>La pantalla del medidor muestra «CALIBRO RUIDO». <strong>No enciendas el aparato</strong> hasta que vuelva a mostrar la corriente (unos 30 s en total).</li>
+        </ol>
+        {!compatible && (
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            Este medidor tiene el firmware {m.firmware_version}: para recalibrar desde la web hay que subirle la versión 2.1.0 o posterior.
+          </p>
+        )}
+      </div>
+      {recalibrar.isError && <p role="alert" className="mt-3 text-sm text-red-600">{mensajeError(recalibrar.error)}</p>}
+      <div className="mt-5 flex justify-end gap-2">
+        <Boton variante="fantasma" onClick={onCerrar}>Cancelar</Boton>
+        <Boton
+          cargando={recalibrar.isPending}
+          onClick={() =>
+            recalibrar.mutate(m.id_medidor, {
+              onSuccess: () => {
+                avisar("Pedido enviado: mantén el aparato apagado unos 30 s");
+                onCerrar();
+              },
+            })
+          }
+        >
+          Recalibrar
         </Boton>
       </div>
     </Dialogo>

@@ -6,8 +6,8 @@ export interface InfoFalla {
   queHacer: string;
 }
 
-// El hardware no tiene botones (decisión P10): la recalibración ocurre sola al encender
-// el ESP32 si no tiene un cero válido guardado.
+// El hardware no tiene botones (decisión P10): el cero se recalibra al vincular y cuando
+// la web lo pide con «Recalibrar cero» (firmware 2.1+).
 export const FALLAS: Record<CodigoFalla, InfoFalla> = {
   REVISAR_DIVISOR: {
     titulo: "Revisar divisor",
@@ -25,14 +25,14 @@ export const FALLAS: Record<CodigoFalla, InfoFalla> = {
     titulo: "Sin calibrar",
     explicacion: "El medidor todavía no sabe cuánto es «cero» y no puede calcular la corriente.",
     queHacer:
-      "Apaga el aparato, desenchufa el medidor 10 segundos y vuelve a enchufarlo. Al encender se calibra solo (deja el aparato apagado ~10 s).",
+      "Apaga el aparato y toca «Recalibrar cero» (abajo, en Gestionar). No lo enciendas hasta que el medidor vuelva a mostrar la corriente (~30 s).",
   },
   CERO_FALLIDO: {
     titulo: "Calibración fallida",
     explicacion:
       "La calibración del cero falló porque había demasiado ruido; lo más común es que el aparato estuviera encendido mientras calibraba.",
     queHacer:
-      "Apaga el aparato, desenchufa el medidor 10 segundos y vuelve a enchufarlo. Si se repite, revisa el cableado del sensor.",
+      "Apaga el aparato y toca «Recalibrar cero» (abajo, en Gestionar). Si se repite con el aparato apagado, revisa el cableado del sensor.",
   },
 };
 

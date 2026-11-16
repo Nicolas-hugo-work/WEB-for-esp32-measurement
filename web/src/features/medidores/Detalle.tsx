@@ -11,7 +11,7 @@ import { useTarifa } from "../ajustes/api";
 import { nombreDeAlerta, useAlertas } from "../alertas/api";
 import { EstadoMedidor } from "./Estado";
 import { Grafico, type DatosGrafico } from "./Grafico";
-import { EditarMedidor, DesvincularMedidor, EliminarMedidor } from "./Gestion";
+import { EditarMedidor, DesvincularMedidor, EliminarMedidor, RecalibrarMedidor } from "./Gestion";
 import {
   nombreMedidor,
   useConsumoHorario,
@@ -54,7 +54,7 @@ function DetalleMedidor({ m, volver }: { m: Medidor; volver: React.ReactNode }) 
   const ahora = useAhora(5_000);
   const [vista, setVista] = useState<Vista>("vivo");
   const [horas, setHoras] = useState(6);
-  const [dialogo, setDialogo] = useState<null | "editar" | "desvincular" | "eliminar">(null);
+  const [dialogo, setDialogo] = useState<null | "editar" | "desvincular" | "eliminar" | "recalibrar">(null);
 
   const vivo = useLecturasVivo(m.id_medidor);
   const serie = useSerie(m.id_medidor, horas, vista === "horas");
@@ -130,6 +130,7 @@ function DetalleMedidor({ m, volver }: { m: Medidor; volver: React.ReactNode }) 
               <IcoAviso className="size-3.5" /> Con falla
             </Insignia>
           )}
+          {m.recalibrar_solicitado && m.activo && <Insignia tono="azul">Recalibración pendiente</Insignia>}
         </div>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           {[ap?.ubicacion?.nombre, ap?.catalogo && `${ap.catalogo.tipo} ${ap.catalogo.potencia_nominal_w} W`].filter(Boolean).join(" · ") || "Sin datos del aparato"}
@@ -312,6 +313,11 @@ function DetalleMedidor({ m, volver }: { m: Medidor; volver: React.ReactNode }) 
           <Boton variante="secundario" onClick={() => setDialogo("editar")} disabled={!ap}>Editar</Boton>
           <Link to={`/medidor/${m.id_medidor}/alertas`} className={claseBoton("secundario")}>Alertas</Link>
           {m.activo && (
+            <Boton variante="secundario" className="col-span-2" onClick={() => setDialogo("recalibrar")}>
+              Recalibrar cero
+            </Boton>
+          )}
+          {m.activo && (
             <Boton variante="secundario" onClick={() => setDialogo("desvincular")}>Desvincular</Boton>
           )}
           <Boton variante="peligro" onClick={() => setDialogo("eliminar")} className={m.activo ? "" : "col-span-2"}>
@@ -329,6 +335,7 @@ function DetalleMedidor({ m, volver }: { m: Medidor; volver: React.ReactNode }) 
       </section>
 
       <EditarMedidor m={m} abierto={dialogo === "editar"} onCerrar={() => setDialogo(null)} />
+      <RecalibrarMedidor m={m} abierto={dialogo === "recalibrar"} onCerrar={() => setDialogo(null)} />
       <DesvincularMedidor m={m} abierto={dialogo === "desvincular"} onCerrar={() => setDialogo(null)} />
       <EliminarMedidor m={m} abierto={dialogo === "eliminar"} onCerrar={() => setDialogo(null)} />
     </>
