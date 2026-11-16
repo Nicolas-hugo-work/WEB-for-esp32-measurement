@@ -13,3 +13,7 @@ web/test-results/
 scripts/.simulador*.json
 web/dev-dist/
 web/.vite/
+.vercel
+
+.vercel
+.env*

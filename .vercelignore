@@ -1,0 +1,13 @@
+# Nunca subir secretos ni archivos generados a Vercel
+**/.env
+**/.env.local
+**/.env.*.local
+supabase/functions/.env
+supabase/.temp
+supabase/.branches
+scripts/.simulador*.json
+**/node_modules
+web/dist
+web/dev-dist
+web/test-results
+web/playwright-report
